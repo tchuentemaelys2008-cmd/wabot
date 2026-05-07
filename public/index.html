@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Levanter Session Generator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      padding: 18px 40px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header img { width: 36px; height: 36px; border-radius: 50%; }
+
+    header h1 { font-size: 20px; color: #25d366; font-weight: 700; }
+    header span { color: #8b949e; font-size: 13px; margin-left: auto; }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 16px;
+      padding: 32px 28px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .card h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      color: #e6edf3;
+    }
+
+    .card p {
+      color: #8b949e;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      background: #25d366;
+      color: #0d1117;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+    }
+    .btn:hover { background: #1db954; transform: translateY(-1px); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; transform: none; }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      text-align: left;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .step-num {
+      background: #25d366;
+      color: #0d1117;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .step-text { font-size: 14px; color: #c9d1d9; line-height: 1.5; }
+    .step-text strong { color: #25d366; }
+
+    /* QR section */
+    #qr-section { display: none; }
+
+    .qr-wrap {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      display: inline-block;
+      margin: 16px 0;
+    }
+
+    .qr-wrap img { display: block; width: 240px; height: 240px; }
+
+    .pulse {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #25d366;
+      margin-right: 8px;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #8b949e;
+      margin-top: 8px;
+    }
+
+    /* Session result */
+    #result-section { display: none; }
+
+    .success-icon {
+      font-size: 52px;
+      margin-bottom: 12px;
+    }
+
+    .session-box {
+      background: #0d1117;
+      border: 1px solid #25d366;
+      border-radius: 10px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 11px;
+      word-break: break-all;
+      color: #25d366;
+      text-align: left;
+      max-height: 100px;
+      overflow-y: auto;
+      margin: 16px 0;
+    }
+
+    .btn-copy {
+      background: transparent;
+      border: 1px solid #25d366;
+      color: #25d366;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .btn-copy:hover { background: #25d36620; }
+
+    .btn-new {
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 13px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    .btn-new:hover { background: #21262d; color: #e6edf3; }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #25d366;
+      color: #0d1117;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    .loader {
+      border: 3px solid #30363d;
+      border-top: 3px solid #25d366;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 0.8s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      margin-top: auto;
+      padding: 20px;
+      color: #30363d;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .error-msg {
+      background: #3d0c0c;
+      border: 1px solid #f85149;
+      color: #f85149;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="width:36px;height:36px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:20px;">🤖</div>
+  <h1>Levanter</h1>
+  <span>Session Generator</span>
+</header>
+
+<div class="container">
+
+  <!-- Étape 1 : Démarrage -->
+  <div class="card" id="start-section">
+    <h2>🔐 Génère ta Session</h2>
+    <p>Connecte ton numéro WhatsApp pour obtenir ton SESSION_ID et déployer ton bot Levanter.</p>
+
+    <div class="steps" style="margin-bottom:24px;">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Clique sur <strong>Démarrer</strong> pour générer un QR code</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Scanne le QR avec <strong>WhatsApp → Appareils liés</strong></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">Copie ton <strong>SESSION_ID</strong> et mets-le dans <code>config.env</code></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">Upload le projet sur ton hébergeur (ex: <strong>BotHosting.net</strong>)</div>
+      </div>
+    </div>
+
+    <button class="btn" id="start-btn" onclick="startGeneration()">⚡ Démarrer la génération</button>
+  </div>
+
+  <!-- Étape 2 : QR Code -->
+  <div class="card" id="qr-section">
+    <h2>📱 Scanne le QR Code</h2>
+    <p>Ouvre WhatsApp → <strong>Appareils liés</strong> → <strong>Lier un appareil</strong> et scanne ce code.</p>
+
+    <div id="qr-loader"><div class="loader"></div><p style="color:#8b949e;font-size:13px;">Génération du QR code...</p></div>
+    <div id="qr-image-wrap" style="display:none;">
+      <div class="qr-wrap">
+        <img id="qr-img" src="" alt="QR Code" />
+      </div>
+      <div class="status-bar">
+        <span class="pulse"></span> En attente du scan...
+      </div>
+    </div>
+
+    <div id="connecting-msg" style="display:none;margin-top:16px;">
+      <div class="loader"></div>
+      <p style="color:#8b949e;font-size:13px;">Connexion en cours... ⏳</p>
+    </div>
+
+    <div id="qr-error" class="error-msg" style="display:none;"></div>
+  </div>
+
+  <!-- Étape 3 : Session obtenue -->
+  <div class="card" id="result-section">
+    <div class="success-icon">✅</div>
+    <h2>Session Générée !</h2>
+    <p>Ton SESSION_ID est prêt. Copie-le et colle-le dans ton fichier <strong>config.env</strong> à la ligne <code>SESSION_ID=</code></p>
+
+    <div class="session-box" id="session-string"></div>
+
+    <button class="btn-copy" onclick="copySession()">📋 Copier le SESSION_ID</button>
+    <button class="btn-new" onclick="resetAll()">↩️ Générer une nouvelle session</button>
+
+    <div style="margin-top:20px;padding:14px;background:#0d1117;border:1px solid #30363d;border-radius:10px;text-align:left;">
+      <p style="font-size:13px;color:#8b949e;margin-bottom:8px;">📩 <strong style="color:#e6edf3;">Message envoyé sur ton WhatsApp</strong></p>
+      <p style="font-size:12px;color:#8b949e;">Le SESSION_ID a aussi été envoyé directement dans ta conversation WhatsApp personnelle.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">✅ Copié !</div>
+
+<footer>Levanter Session Generator — Outil officieux pour déployer ton bot WhatsApp</footer>
+
+<script>
+  let currentSessionId = null
+  let pollInterval = null
+
+  async function startGeneration() {
+    const btn = document.getElementById('start-btn')
+    btn.disabled = true
+    btn.textContent = '⏳ Démarrage...'
+
+    try {
+      const res = await fetch('/api/start', { method: 'POST' })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+
+      currentSessionId = data.sessionId
+      document.getElementById('start-section').style.display = 'none'
+      document.getElementById('qr-section').style.display = 'block'
+
+      startPolling()
+    } catch (e) {
+      btn.disabled = false
+      btn.textContent = '⚡ Démarrer la génération'
+      alert('Erreur: ' + e.message)
+    }
+  }
+
+  function startPolling() {
+    pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/status/' + currentSessionId)
+        const data = await res.json()
+
+        if (data.status === 'qr_ready' && data.qrCode) {
+          document.getElementById('qr-loader').style.display = 'none'
+          document.getElementById('qr-image-wrap').style.display = 'block'
+          document.getElementById('qr-img').src = data.qrCode
+        }
+
+        if (data.status === 'connected') {
+          document.getElementById('qr-image-wrap').style.display = 'none'
+          document.getElementById('connecting-msg').style.display = 'block'
+        }
+
+        if (data.status === 'done' && data.sessionString) {
+          clearInterval(pollInterval)
+          document.getElementById('qr-section').style.display = 'none'
+          document.getElementById('result-section').style.display = 'block'
+          document.getElementById('session-string').textContent = data.sessionString
+        }
+
+        if (data.status === 'error') {
+          clearInterval(pollInterval)
+          document.getElementById('qr-loader').style.display = 'none'
+          document.getElementById('qr-image-wrap').style.display = 'none'
+          const errEl = document.getElementById('qr-error')
+          errEl.style.display = 'block'
+          errEl.textContent = '❌ ' + (data.error || 'Erreur inconnue. Réessaie.')
+        }
+      } catch {}
+    }, 1500)
+  }
+
+  function copySession() {
+    const text = document.getElementById('session-string').textContent
+    navigator.clipboard.writeText(text).then(() => {
+      const toast = document.getElementById('toast')
+      toast.classList.add('show')
+      setTimeout(() => toast.classList.remove('show'), 2500)
+    })
+  }
+
+  function resetAll() {
+    clearInterval(pollInterval)
+    currentSessionId = null
+    document.getElementById('result-section').style.display = 'none'
+    document.getElementById('qr-section').style.display = 'none'
+    document.getElementById('start-section').style.display = 'block'
+    document.getElementById('start-btn').disabled = false
+    document.getElementById('start-btn').textContent = '⚡ Démarrer la génération'
+    document.getElementById('qr-loader').style.display = 'block'
+    document.getElementById('qr-image-wrap').style.display = 'none'
+    document.getElementById('connecting-msg').style.display = 'none'
+    document.getElementById('qr-error').style.display = 'none'
+  }
+</script>
+</body>
+</html>
