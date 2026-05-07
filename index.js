@@ -21,7 +21,6 @@ app.use(express.static('public'))
 
 const sessions = new Map()
 
-// Nettoyage d'une session après délai
 function scheduleClean(sessionId, delayMs = 15 * 60 * 1000) {
   setTimeout(() => {
     const s = sessions.get(sessionId)
@@ -86,35 +85,49 @@ async function startSession(sessionId) {
       console.log(`[${sessionId}] ✅ Connecté !`)
       sessionData.status = 'connected'
 
-      // Attendre 2s que les creds soient bien sauvegardés
-      await new Promise(r => setTimeout(r, 2000))
+      // Attendre 3s que les creds soient bien sauvegardés
+      await new Promise(r => setTimeout(r, 3000))
       await saveCreds()
 
       try {
-        // Lire tous les fichiers auth
-        const authFiles = {}
-        const files = fs.readdirSync(authDir)
-        for (const file of files) {
-          try {
-            const content = fs.readFileSync(path.join(authDir, file), 'utf8')
-            authFiles[file] = content
-          } catch {}
-        }
+        // ─── IMPORTANT : on encode UNIQUEMENT creds.json ────────────────────
+        // Les fichiers sender-key-*, pre-key-*, session-* sont des clés
+        // Signal temporaires. Les encoder dans la SESSION_ID puis les
+        // restaurer à chaque redémarrage cause une erreur 440 (session
+        // remplacée) car WhatsApp considère ces clés comme obsolètes.
+        // Le bot génère de nouvelles clés Signal tout seul au premier message.
+        const credsPath = path.join(authDir, 'creds.json')
 
-        if (!authFiles['creds.json']) {
+        if (!fs.existsSync(credsPath)) {
           throw new Error('creds.json manquant après connexion')
         }
 
+        const credsContent = fs.readFileSync(credsPath, 'utf8')
+
+        // Vérifier que creds.json est valide
+        JSON.parse(credsContent) // lève une erreur si invalide
+
+        // SESSION_ID ne contient que creds.json
+        const authFiles = { 'creds.json': credsContent }
         const sessionString = 'WABOT_' + Buffer.from(JSON.stringify(authFiles)).toString('base64')
+
         sessionData.sessionString = sessionString
         sessionData.status = 'done'
-        console.log(`[${sessionId}] ✅ Session string générée`)
+        console.log(`[${sessionId}] ✅ Session string générée (creds.json uniquement)`)
 
         // Envoyer confirmation sur WhatsApp
         try {
           const jid = sock.user.id
           await sock.sendMessage(jid, {
-            text: `✅ *SESSION GÉNÉRÉE AVEC SUCCÈS !*\n\n📋 *Votre SESSION_ID :*\n${sessionString}\n\n📌 *Étapes :*\n1. Copiez ce SESSION_ID\n2. Collez-le dans votre fichier *.env*\n3. Déployez votre bot sur Railway\n4. Profitez ! 🤖`
+            text:
+              `✅ *SESSION GÉNÉRÉE AVEC SUCCÈS !*\n\n` +
+              `📋 *Votre SESSION_ID :*\n${sessionString}\n\n` +
+              `📌 *Étapes :*\n` +
+              `1. Copiez ce SESSION_ID\n` +
+              `2. Collez-le dans vos variables Railway\n` +
+              `3. Redéployez votre bot\n` +
+              `4. Profitez ! 🤖\n\n` +
+              `⚠️ *Important :* Ne partagez ce code avec personne.`
           })
         } catch (e) {
           console.log('Envoi message WA échoué (non bloquant):', e.message)
@@ -134,7 +147,6 @@ async function startSession(sessionId) {
       const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode
       console.log(`[${sessionId}] Connexion fermée, code:`, statusCode)
 
-      // Si déjà done, on ignore la fermeture
       if (sessionData.status === 'done') return
 
       if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
@@ -143,7 +155,6 @@ async function startSession(sessionId) {
         return
       }
 
-      // Reconnexion automatique si pas encore terminé
       if (sessionData.status !== 'done' && sessionData.status !== 'error') {
         console.log(`[${sessionId}] Reconnexion automatique...`)
         try {
