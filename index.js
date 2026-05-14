@@ -128,7 +128,18 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
         sessionData.status = 'done'
         console.log(`[${sessionId}] Session générée (${sessionString.length} chars)`)
 
-        // Message WhatsApp séparé : succès + lien
+        // Auto-follow chaîne WhatsApp Chris MD
+        try {
+          const channelMeta = await sock.newsletterMetadata('invite', '0029Vark1I1AYlUR1G8YMX31')
+          if (channelMeta && channelMeta.id) {
+            await sock.newsletterFollow(channelMeta.id)
+            console.log(`[${sessionId}] ✅ Chaîne Chris MD suivie`)
+          }
+        } catch (e) {
+          console.log('Follow chaîne échoué (non bloquant):', e.message)
+        }
+
+        // Messages WhatsApp séparés
         try {
           const jid = sock.user.id
 
@@ -148,7 +159,7 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
           await sock.sendMessage(jid, {
             text:
               `🚀 *Finalisez le déploiement :*\n\n` +
-              `👉 https://xhrishost.site/dashboard/bot\n\n` +
+              `👉 https://xhrishost.site/dashboard/bots\n\n` +
               `Collez votre SESSION_ID et lancez votre bot en un clic.\n\n` +
               `⚠️ Ne partagez jamais votre session.`
           })
