@@ -13,6 +13,7 @@ const { Boom } = require('@hapi/boom')
 const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
+const zlib = require('zlib')
 
 const app = express()
 app.use(cors())
@@ -31,6 +32,11 @@ function scheduleClean(sessionId, delayMs = 15 * 60 * 1000) {
     const dir = path.join('/tmp', sessionId)
     try { if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true }) } catch {}
   }, delayMs)
+}
+
+function compressSession(credsContent) {
+  const compressed = zlib.deflateSync(Buffer.from(credsContent, 'utf8'))
+  return 'CHRIS_MD_' + compressed.toString('base64')
 }
 
 async function startSession(sessionId, method = 'qr', phoneNumber = null) {
@@ -66,7 +72,6 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
   }
   sessions.set(sessionId, sessionData)
 
-  // Si méthode pair code, demander le code
   if (method === 'pair' && phoneNumber) {
     setTimeout(async () => {
       try {
@@ -79,7 +84,7 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
       } catch (e) {
         console.error(`[${sessionId}] Erreur pair code:`, e.message)
         sessionData.status = 'error'
-        sessionData.error = 'Impossible de générer le code. Vérifie le numéro.'
+        sessionData.error = 'Impossible de générer le code. Vérifiez le numéro.'
       }
     }, 3000)
   }
@@ -102,7 +107,7 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
     }
 
     if (connection === 'open') {
-      console.log(`[${sessionId}] ✅ Connecté !`)
+      console.log(`[${sessionId}] Connecté`)
       sessionData.status = 'connected'
 
       await new Promise(r => setTimeout(r, 3000))
@@ -117,24 +122,35 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
         const credsContent = fs.readFileSync(credsPath, 'utf8')
         JSON.parse(credsContent)
 
-        const authFiles = { 'creds.json': credsContent }
-        const sessionString = 'CHRIS_MD_' + Buffer.from(JSON.stringify(authFiles)).toString('base64')
+        const sessionString = compressSession(credsContent)
 
         sessionData.sessionString = sessionString
         sessionData.status = 'done'
-        console.log(`[${sessionId}] ✅ Session générée`)
+        console.log(`[${sessionId}] Session générée (${sessionString.length} chars)`)
 
+        // Message WhatsApp séparé : succès + lien
         try {
           const jid = sock.user.id
+
+          // Message 1 : Succès
           await sock.sendMessage(jid, {
             text:
-              `✅ *SESSION CHRIS MD GÉNÉRÉE !*\n\n` +
-              `📋 *Votre SESSION_ID :*\n${sessionString}\n\n` +
-              `📌 *Étapes :*\n` +
-              `1. Copiez ce SESSION_ID\n` +
-              `2. Collez-le dans vos variables\n` +
-              `3. Redéployez votre bot\n\n` +
-              `⚠️ *Ne partagez ce code avec personne.*`
+              `✅ *Session Chris MD générée avec succès !*\n\n` +
+              `Votre bot est prêt à être déployé.`
+          })
+
+          // Message 2 : Session ID
+          await sock.sendMessage(jid, {
+            text: sessionString
+          })
+
+          // Message 3 : Lien de déploiement
+          await sock.sendMessage(jid, {
+            text:
+              `🚀 *Finalisez le déploiement :*\n\n` +
+              `👉 https://xhrishost.site/dashboard/bot\n\n` +
+              `Collez votre SESSION_ID et lancez votre bot en un clic.\n\n` +
+              `⚠️ Ne partagez jamais votre session.`
           })
         } catch (e) {
           console.log('Envoi message WA échoué:', e.message)
@@ -157,7 +173,7 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
 
       if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
         sessionData.status = 'error'
-        sessionData.error = 'Session expirée. Réessaie.'
+        sessionData.error = 'Session expirée. Réessayez.'
         return
       }
 
@@ -203,4 +219,4 @@ app.get('/api/status/:sessionId', (req, res) => {
 })
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`✅ Chris MD Session sur le port ${PORT}`))
+app.listen(PORT, () => console.log(`Chris MD Session — port ${PORT}`))
