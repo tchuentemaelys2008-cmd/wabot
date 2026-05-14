@@ -33,7 +33,7 @@ function scheduleClean(sessionId, delayMs = 15 * 60 * 1000) {
   }, delayMs)
 }
 
-async function startSession(sessionId) {
+async function startSession(sessionId, method = 'qr', phoneNumber = null) {
   const authDir = path.join('/tmp', sessionId)
   fs.mkdirSync(authDir, { recursive: true })
 
@@ -58,11 +58,31 @@ async function startSession(sessionId) {
   const sessionData = {
     socket: sock,
     qrCode: null,
+    pairCode: null,
     sessionString: null,
-    status: 'waiting_qr',
+    status: method === 'pair' ? 'waiting_pair' : 'waiting_qr',
+    method: method,
     error: null,
   }
   sessions.set(sessionId, sessionData)
+
+  // Si méthode pair code, demander le code
+  if (method === 'pair' && phoneNumber) {
+    setTimeout(async () => {
+      try {
+        if (!sock.authState?.creds?.registered) {
+          const code = await sock.requestPairingCode(phoneNumber)
+          sessionData.pairCode = code
+          sessionData.status = 'pair_ready'
+          console.log(`[${sessionId}] Pair code: ${code}`)
+        }
+      } catch (e) {
+        console.error(`[${sessionId}] Erreur pair code:`, e.message)
+        sessionData.status = 'error'
+        sessionData.error = 'Impossible de générer le code. Vérifie le numéro.'
+      }
+    }, 3000)
+  }
 
   sock.ev.on('creds.update', saveCreds)
 
@@ -70,7 +90,7 @@ async function startSession(sessionId) {
     const { connection, lastDisconnect, qr } = update
     console.log(`[${sessionId}] update:`, connection || '', qr ? 'QR reçu' : '')
 
-    if (qr) {
+    if (qr && method === 'qr') {
       try {
         const qrImage = await QRCode.toDataURL(qr, { width: 300, margin: 2 })
         sessionData.qrCode = qrImage
@@ -85,59 +105,45 @@ async function startSession(sessionId) {
       console.log(`[${sessionId}] ✅ Connecté !`)
       sessionData.status = 'connected'
 
-      // Attendre 3s que les creds soient bien sauvegardés
       await new Promise(r => setTimeout(r, 3000))
       await saveCreds()
 
       try {
-        // ─── IMPORTANT : on encode UNIQUEMENT creds.json ────────────────────
-        // Les fichiers sender-key-*, pre-key-*, session-* sont des clés
-        // Signal temporaires. Les encoder dans la SESSION_ID puis les
-        // restaurer à chaque redémarrage cause une erreur 440 (session
-        // remplacée) car WhatsApp considère ces clés comme obsolètes.
-        // Le bot génère de nouvelles clés Signal tout seul au premier message.
         const credsPath = path.join(authDir, 'creds.json')
-
         if (!fs.existsSync(credsPath)) {
           throw new Error('creds.json manquant après connexion')
         }
 
         const credsContent = fs.readFileSync(credsPath, 'utf8')
+        JSON.parse(credsContent)
 
-        // Vérifier que creds.json est valide
-        JSON.parse(credsContent) // lève une erreur si invalide
-
-        // SESSION_ID ne contient que creds.json
         const authFiles = { 'creds.json': credsContent }
-        const sessionString = 'WABOT_' + Buffer.from(JSON.stringify(authFiles)).toString('base64')
+        const sessionString = 'CHRIS_MD_' + Buffer.from(JSON.stringify(authFiles)).toString('base64')
 
         sessionData.sessionString = sessionString
         sessionData.status = 'done'
-        console.log(`[${sessionId}] ✅ Session string générée (creds.json uniquement)`)
+        console.log(`[${sessionId}] ✅ Session générée`)
 
-        // Envoyer confirmation sur WhatsApp
         try {
           const jid = sock.user.id
           await sock.sendMessage(jid, {
             text:
-              `✅ *SESSION GÉNÉRÉE AVEC SUCCÈS !*\n\n` +
+              `✅ *SESSION CHRIS MD GÉNÉRÉE !*\n\n` +
               `📋 *Votre SESSION_ID :*\n${sessionString}\n\n` +
               `📌 *Étapes :*\n` +
               `1. Copiez ce SESSION_ID\n` +
-              `2. Collez-le dans vos variables Railway\n` +
-              `3. Redéployez votre bot\n` +
-              `4. Profitez ! 🤖\n\n` +
-              `⚠️ *Important :* Ne partagez ce code avec personne.`
+              `2. Collez-le dans vos variables\n` +
+              `3. Redéployez votre bot\n\n` +
+              `⚠️ *Ne partagez ce code avec personne.*`
           })
         } catch (e) {
-          console.log('Envoi message WA échoué (non bloquant):', e.message)
+          console.log('Envoi message WA échoué:', e.message)
         }
 
-        // Nettoyer après 15 min
         scheduleClean(sessionId, 15 * 60 * 1000)
 
       } catch (e) {
-        console.error(`[${sessionId}] Erreur génération session:`, e.message)
+        console.error(`[${sessionId}] Erreur:`, e.message)
         sessionData.status = 'error'
         sessionData.error = e.message
       }
@@ -145,7 +151,7 @@ async function startSession(sessionId) {
 
     if (connection === 'close') {
       const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode
-      console.log(`[${sessionId}] Connexion fermée, code:`, statusCode)
+      console.log(`[${sessionId}] Fermé, code:`, statusCode)
 
       if (sessionData.status === 'done') return
 
@@ -156,9 +162,9 @@ async function startSession(sessionId) {
       }
 
       if (sessionData.status !== 'done' && sessionData.status !== 'error') {
-        console.log(`[${sessionId}] Reconnexion automatique...`)
+        console.log(`[${sessionId}] Reconnexion...`)
         try {
-          await startSession(sessionId)
+          await startSession(sessionId, method, phoneNumber)
         } catch (e) {
           sessionData.status = 'error'
           sessionData.error = 'Reconnexion échouée: ' + e.message
@@ -167,15 +173,15 @@ async function startSession(sessionId) {
     }
   })
 
-  // Timeout de sécurité : 8 min max
   scheduleClean(sessionId, 8 * 60 * 1000)
 }
 
 // Routes
 app.post('/api/start', async (req, res) => {
+  const { method, phoneNumber } = req.body || {}
   const sessionId = 'sess_' + crypto.randomBytes(8).toString('hex')
   try {
-    await startSession(sessionId)
+    await startSession(sessionId, method || 'qr', phoneNumber || null)
     res.json({ sessionId, status: 'started' })
   } catch (e) {
     console.error('Erreur /api/start:', e.message)
@@ -189,10 +195,12 @@ app.get('/api/status/:sessionId', (req, res) => {
   res.json({
     status: s.status,
     qrCode: s.qrCode,
+    pairCode: s.pairCode,
     sessionString: s.sessionString,
     error: s.error,
+    method: s.method,
   })
 })
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`✅ Session Generator démarré sur le port ${PORT}`))
+app.listen(PORT, () => console.log(`✅ Chris MD Session sur le port ${PORT}`))
