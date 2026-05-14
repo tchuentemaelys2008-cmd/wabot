@@ -3,477 +3,760 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chris MD — Session Generator</title>
+  <title>Chris MD — Session</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0a0a1a;
-      --card: #12122a;
-      --border: #1e1e3a;
+      --bg: #06060f;
+      --bg-elevated: #0c0c1d;
+      --card: #111128;
+      --card-hover: #16163a;
+      --border: #1a1a3e;
+      --border-active: #7c3aed;
       --purple: #7c3aed;
+      --purple-hover: #6d28d9;
       --purple-light: #a78bfa;
-      --purple-glow: rgba(124, 58, 237, 0.25);
-      --text: #e2e8f0;
-      --text-dim: #8b8ba7;
+      --purple-soft: #c4b5fd;
+      --purple-glow: rgba(124, 58, 237, 0.15);
+      --purple-glow-strong: rgba(124, 58, 237, 0.3);
+      --text: #eeeef5;
+      --text-secondary: #9191b3;
+      --text-muted: #5e5e80;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.08);
+      --success-border: rgba(16, 185, 129, 0.2);
       --danger: #ef4444;
-      --success: #22c55e;
+      --danger-bg: rgba(239, 68, 68, 0.08);
+      --danger-border: rgba(239, 68, 68, 0.2);
+      --radius: 14px;
+      --radius-sm: 10px;
     }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Header */
+    /* ── Header ── */
     header {
       width: 100%;
-      padding: 16px 24px;
-      background: var(--card);
+      padding: 14px 20px;
+      background: var(--bg-elevated);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 12px;
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
     }
 
-    .logo {
-      width: 38px; height: 38px;
-      background: var(--purple);
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--purple), #9333ea);
       border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; font-weight: 700; color: #fff;
+      box-shadow: 0 0 20px var(--purple-glow);
     }
 
-    header h1 { font-size: 18px; font-weight: 700; color: #fff; }
-    header span { color: var(--text-dim); font-size: 13px; margin-left: auto; }
+    .logo-mark svg { width: 20px; height: 20px; }
 
+    .header-text h1 {
+      font-size: 16px; font-weight: 700; color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .header-text span {
+      font-size: 11px; color: var(--text-muted);
+      font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;
+    }
+
+    .header-badge {
+      margin-left: auto;
+      background: var(--purple-glow);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--purple-light);
+      font-weight: 600;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    .header-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+
+    /* ── Layout ── */
     .container {
-      width: 100%; max-width: 440px;
-      padding: 24px 16px;
+      width: 100%; max-width: 460px;
+      padding: 20px 16px 40px;
       display: flex; flex-direction: column;
-      align-items: center; gap: 20px;
+      align-items: center; gap: 16px;
     }
 
-    /* Cards */
+    /* ── Card ── */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px 24px;
+      border-radius: var(--radius);
+      padding: 24px 20px;
       width: 100%;
+      animation: fadeUp 0.35s ease;
     }
 
-    .card h2 { font-size: 20px; margin-bottom: 6px; font-weight: 700; }
-    .card p { color: var(--text-dim); font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
-
-    /* Method selector */
-    .method-grid {
-      display: flex; gap: 12px; margin-bottom: 24px;
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .method-option {
-      flex: 1;
+    .card-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card-icon {
+      width: 40px; height: 40px;
+      background: var(--purple-glow);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-icon svg { width: 20px; height: 20px; color: var(--purple-light); }
+    .card-icon.success { background: var(--success-bg); }
+    .card-icon.success svg { color: var(--success); }
+
+    .card-title { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+    .card-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-top: 2px; }
+
+    /* ── Method Selector ── */
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+
+    .method-card {
       background: var(--bg);
-      border: 2px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 14px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      position: relative;
     }
 
-    .method-option:hover { border-color: var(--purple-light); }
-    .method-option.active {
+    .method-card:hover { border-color: #2d2d60; background: var(--bg-elevated); }
+
+    .method-card.active {
       border-color: var(--purple);
       background: var(--purple-glow);
     }
 
-    .method-icon {
-      width: 48px; height: 48px;
+    .method-card.active::after {
+      content: '';
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 18px; height: 18px;
+      background: var(--purple);
+      border-radius: 50%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+      background-size: 11px; background-repeat: no-repeat; background-position: center;
+    }
+
+    .method-card-icon {
+      width: 44px; height: 44px;
       background: var(--purple-glow);
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 10px;
-      font-size: 22px;
     }
 
-    .method-option.active .method-icon { background: var(--purple); }
+    .method-card.active .method-card-icon { background: var(--purple); }
 
-    .method-option h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-    .method-option p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    .method-card-icon svg { width: 22px; height: 22px; color: var(--purple-light); }
+    .method-card.active .method-card-icon svg { color: #fff; }
 
-    /* Phone input */
-    .phone-input-group {
-      margin-bottom: 20px;
-      display: none;
+    .method-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 3px; color: var(--text); }
+    .method-card p { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 18px; display: none; }
+    .form-group.show { display: block; }
+
+    .form-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--text-secondary);
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
     }
 
-    .phone-input-group.show { display: block; }
+    .form-label svg { width: 14px; height: 14px; color: var(--text-muted); }
 
-    .phone-input-group label {
-      display: block;
-      font-size: 13px;
-      color: var(--text-dim);
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
-
-    .phone-input {
+    .form-input {
       width: 100%;
       background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 13px 14px;
       color: var(--text);
-      font-size: 16px;
+      font-size: 15px;
       font-family: 'Inter', sans-serif;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
-    .phone-input:focus { border-color: var(--purple); }
-
-    .phone-hint {
-      font-size: 12px;
-      color: var(--text-dim);
-      margin-top: 6px;
+    .form-input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px var(--purple-glow);
     }
 
-    /* Buttons */
-    .btn {
-      background: var(--purple);
+    .form-input::placeholder { color: var(--text-muted); }
+
+    .form-hint {
+      font-size: 11px; color: var(--text-muted);
+      margin-top: 6px; display: flex; align-items: center; gap: 4px;
+    }
+
+    .form-hint svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), #6d28d9);
       color: #fff;
       border: none;
       border-radius: 12px;
-      padding: 14px 32px;
-      font-size: 15px;
+      padding: 14px 28px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       width: 100%;
       transition: all 0.2s;
       font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 20px var(--purple-glow);
     }
 
-    .btn:hover { background: #6d28d9; }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
+    .btn-primary:hover { box-shadow: 0 6px 30px var(--purple-glow-strong); transform: translateY(-1px); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
 
-    /* QR */
-    .qr-wrap {
+    .btn-primary svg { width: 16px; height: 16px; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .btn-outline:hover { border-color: var(--purple); background: var(--purple-glow); color: var(--purple-light); }
+    .btn-outline svg { width: 15px; height: 15px; }
+
+    .btn-deploy {
+      background: linear-gradient(135deg, var(--success), #059669);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+      transition: all 0.2s;
+    }
+
+    .btn-deploy:hover { box-shadow: 0 6px 30px rgba(16, 185, 129, 0.3); transform: translateY(-1px); }
+    .btn-deploy svg { width: 16px; height: 16px; }
+
+    /* ── QR ── */
+    .qr-container {
       background: #fff;
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 16px;
       display: inline-block;
       margin: 16px 0;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
     }
 
-    .qr-wrap img { display: block; width: 220px; height: 220px; }
+    .qr-container img { display: block; width: 220px; height: 220px; border-radius: 4px; }
 
-    /* Pair Code display */
-    .pair-code-display {
+    /* ── Pair Code ── */
+    .pair-display {
       background: var(--bg);
       border: 2px solid var(--purple);
-      border-radius: 14px;
-      padding: 24px;
+      border-radius: 16px;
+      padding: 28px 20px;
       margin: 20px 0;
       text-align: center;
+      box-shadow: 0 0 40px var(--purple-glow);
     }
 
-    .pair-code-value {
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: 6px;
-      color: var(--purple-light);
-      font-family: 'Courier New', monospace;
+    .pair-prefix {
+      font-size: 12px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
     }
 
-    .pair-code-label {
-      font-size: 13px;
-      color: var(--text-dim);
-      margin-top: 8px;
+    .pair-value {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 8px;
+      color: var(--purple-soft);
+      font-family: 'Inter', monospace;
     }
 
-    /* Status */
-    .status-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      color: var(--text-dim);
-      gap: 8px;
-      margin-top: 8px;
+    .pair-hint {
+      font-size: 12px; color: var(--text-muted); margin-top: 12px;
+      line-height: 1.5;
     }
 
-    .pulse {
-      width: 8px; height: 8px;
+    /* ── Status ── */
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      background: var(--purple-glow);
+      border-radius: 20px;
+      font-size: 13px; color: var(--purple-light); font-weight: 500;
+      margin-top: 12px;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
       border-radius: 50%;
       background: var(--purple);
-      animation: pulse 1.2s infinite;
+      animation: blink 1.4s ease infinite;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.7); }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
     }
 
-    /* Loader */
-    .loader {
+    /* ── Loader ── */
+    .spinner {
+      width: 40px; height: 40px;
       border: 3px solid var(--border);
-      border-top: 3px solid var(--purple);
+      border-top-color: var(--purple);
       border-radius: 50%;
-      width: 36px; height: 36px;
-      animation: spin 0.8s linear infinite;
+      animation: spin 0.7s linear infinite;
       margin: 20px auto;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Session result */
+    .loading-text { color: var(--text-muted); font-size: 13px; text-align: center; }
+
+    /* ── Session Box ── */
     .session-box {
       background: var(--bg);
-      border: 1px solid var(--purple);
-      border-radius: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       padding: 14px;
       font-family: 'Courier New', monospace;
-      font-size: 11px;
+      font-size: 10px;
       word-break: break-all;
       color: var(--purple-light);
       text-align: left;
-      max-height: 100px;
+      max-height: 80px;
       overflow-y: auto;
-      margin: 16px 0;
+      line-height: 1.6;
     }
 
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--purple);
-      color: var(--purple-light);
-      border-radius: 10px;
-      padding: 12px 24px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      transition: background 0.2s;
-      font-family: 'Inter', sans-serif;
-      margin-bottom: 10px;
-    }
+    .session-box::-webkit-scrollbar { width: 4px; }
+    .session-box::-webkit-scrollbar-track { background: transparent; }
+    .session-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-    .btn-outline:hover { background: var(--purple-glow); }
-
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-dim);
-      border-radius: 10px;
-      padding: 12px 24px;
-      font-size: 13px;
-      cursor: pointer;
-      width: 100%;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .btn-ghost:hover { background: var(--card); color: var(--text); }
-
-    /* Info box */
-    .info-box {
+    /* ── Info Banner ── */
+    .info-banner {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px;
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
+      border-radius: var(--radius-sm);
       margin-top: 16px;
-      text-align: left;
     }
 
-    .info-box .icon { font-size: 18px; flex-shrink: 0; }
-    .info-box p { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0; }
+    .info-banner svg { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; margin-top: 1px; }
+    .info-banner p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 
-    /* Error */
+    /* ── Success Card ── */
+    .success-visual {
+      width: 64px; height: 64px;
+      background: var(--success-bg);
+      border: 2px solid var(--success-border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .success-visual svg { width: 28px; height: 28px; color: var(--success); }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+      width: 100%;
+    }
+
+    /* ── Error ── */
     .error-msg {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid var(--danger);
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
       color: var(--danger);
-      border-radius: 10px;
-      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
       font-size: 13px;
       margin-top: 12px;
+      display: flex; align-items: center; gap: 8px;
     }
 
-    /* Toast */
+    .error-msg svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Toast ── */
     .toast {
       position: fixed;
       bottom: 30px;
       left: 50%;
-      transform: translateX(-50%);
-      background: var(--purple);
-      color: #fff;
-      padding: 12px 28px;
-      border-radius: 30px;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 12px;
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: all 0.3s ease;
       pointer-events: none;
       z-index: 999;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
     }
 
-    .toast.show { opacity: 1; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast svg { width: 16px; height: 16px; color: var(--success); }
 
-    .success-icon { font-size: 48px; margin-bottom: 12px; }
-
-    /* Security badge */
-    .security-note {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      background: var(--bg);
-      border-radius: 10px;
-      margin-top: 16px;
-    }
-
-    .security-note .shield { font-size: 18px; }
-    .security-note p { font-size: 12px; color: var(--text-dim); margin: 0; line-height: 1.4; }
-
+    /* ── Footer ── */
     footer {
       margin-top: auto;
       padding: 20px;
-      color: var(--border);
-      font-size: 12px;
       text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
+
+    footer svg { width: 12px; height: 12px; }
+
+    /* ── Utility ── */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mb-0 { margin-bottom: 0; }
+    .gap-10 { gap: 10px; display: flex; flex-direction: column; }
   </style>
 </head>
 <body>
 
+<!-- ── Header ── -->
 <header>
-  <div class="logo">C</div>
-  <h1>Chris MD</h1>
-  <span>Session</span>
+  <div class="logo-mark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+    </svg>
+  </div>
+  <div class="header-text">
+    <h1>Chris MD</h1>
+    <span>Session Generator</span>
+  </div>
+  <div class="header-badge">
+    <span class="dot"></span>
+    Online
+  </div>
 </header>
 
 <div class="container">
 
-  <!-- ÉTAPE 1 : Choix de la méthode -->
+  <!-- ════════ STEP 1 : Method Selection ════════ -->
   <div class="card" id="start-section">
-    <h2>Générateur de session</h2>
-    <p>Créez une session sécurisée pour connecter votre bot Chris MD.</p>
+    <div class="card-header">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="card-title">Générer une session</div>
+        <div class="card-subtitle">Choisissez votre méthode de connexion</div>
+      </div>
+    </div>
 
     <div class="method-grid">
-      <div class="method-option active" id="opt-qr" onclick="selectMethod('qr')">
-        <div class="method-icon">📱</div>
+      <div class="method-card active" id="opt-qr" onclick="selectMethod('qr')">
+        <div class="method-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
+            <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/>
+            <path d="M18 14h2v4h-4v-2"/>
+          </svg>
+        </div>
         <h3>QR Code</h3>
-        <p>Scanner pour se connecter</p>
+        <p>Connexion rapide par scan</p>
       </div>
-      <div class="method-option" id="opt-pair" onclick="selectMethod('pair')">
-        <div class="method-icon">🔑</div>
+      <div class="method-card" id="opt-pair" onclick="selectMethod('pair')">
+        <div class="method-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/>
+          </svg>
+        </div>
         <h3>Pair Code</h3>
         <p>Code à saisir manuellement</p>
       </div>
     </div>
 
-    <div class="phone-input-group" id="phone-group">
-      <label>Numéro WhatsApp</label>
-      <input type="tel" class="phone-input" id="phone-input" placeholder="237XXXXXXXXX" />
-      <div class="phone-hint">Avec indicatif pays, sans + ni espaces</div>
+    <div class="form-group" id="phone-group">
+      <label class="form-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
+        Numéro WhatsApp
+      </label>
+      <input type="tel" class="form-input" id="phone-input" placeholder="237XXXXXXXXX" />
+      <div class="form-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        Avec indicatif pays, sans + ni espaces
+      </div>
     </div>
 
-    <button class="btn" id="start-btn" onclick="startGeneration()">Créer la session</button>
+    <button class="btn-primary" id="start-btn" onclick="startGeneration()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      Créer la session
+    </button>
 
-    <div class="security-note">
-      <span class="shield">🔒</span>
-      <p>Sécurisé par défaut. Les sessions sont chiffrées et expirent automatiquement.</p>
+    <div class="info-banner mt-16">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <p>Sécurisé par défaut — les sessions sont chiffrées et expirent automatiquement.</p>
     </div>
   </div>
 
-  <!-- ÉTAPE 2A : QR Code -->
-  <div class="card" id="qr-section" style="display:none;text-align:center;">
-    <h2>QR Code</h2>
-    <p>Scannez ce QR Code avec WhatsApp → Appareils liés → Lier un appareil.</p>
+  <!-- ════════ STEP 2A : QR Code ════════ -->
+  <div class="card hidden text-center" id="qr-section">
+    <div class="card-header" style="justify-content:center;">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
+          <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/>
+          <path d="M18 14h2v4h-4v-2"/>
+        </svg>
+      </div>
+      <div>
+        <div class="card-title">QR Code</div>
+        <div class="card-subtitle mb-0">Scannez avec WhatsApp → Appareils liés</div>
+      </div>
+    </div>
 
-    <div id="qr-loader"><div class="loader"></div><p style="color:var(--text-dim);font-size:13px;">Génération du QR code...</p></div>
-    <div id="qr-image-wrap" style="display:none;">
-      <div class="qr-wrap">
+    <div id="qr-loader">
+      <div class="spinner"></div>
+      <p class="loading-text">Génération du QR code...</p>
+    </div>
+
+    <div id="qr-image-wrap" class="hidden">
+      <div class="qr-container">
         <img id="qr-img" src="" alt="QR Code" />
       </div>
-      <div class="status-bar">
-        <span class="pulse"></span> En attente du scan...
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        En attente du scan
       </div>
     </div>
 
-    <div id="connecting-msg" style="display:none;margin-top:16px;">
-      <div class="loader"></div>
-      <p style="color:var(--text-dim);font-size:13px;">Connexion en cours...</p>
+    <div id="connecting-msg" class="hidden" style="margin-top:16px;">
+      <div class="spinner"></div>
+      <p class="loading-text">Connexion en cours...</p>
     </div>
 
-    <div id="qr-error" class="error-msg" style="display:none;"></div>
+    <div id="qr-error" class="error-msg hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+      <span id="qr-error-text"></span>
+    </div>
 
-    <div class="info-box">
-      <span class="icon">⚠️</span>
+    <div class="info-banner mt-16">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
       <p>Ne partagez jamais ce code avec des personnes non autorisées.</p>
     </div>
   </div>
 
-  <!-- ÉTAPE 2B : Pair Code -->
-  <div class="card" id="pair-section" style="display:none;text-align:center;">
-    <h2>Pair Code</h2>
-    <p>Saisissez ce code sur l'appareil à connecter.</p>
-
-    <div id="pair-loader"><div class="loader"></div><p style="color:var(--text-dim);font-size:13px;">Génération du code...</p></div>
-    <div id="pair-code-wrap" style="display:none;">
-      <div class="pair-code-display">
-        <div class="pair-code-value" id="pair-code-value">--------</div>
-        <div class="pair-code-label">Entrez ce code dans WhatsApp → Appareils liés → Lier avec numéro</div>
+  <!-- ════════ STEP 2B : Pair Code ════════ -->
+  <div class="card hidden text-center" id="pair-section">
+    <div class="card-header" style="justify-content:center;">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/>
+        </svg>
       </div>
-      <div class="status-bar">
-        <span class="pulse"></span> En attente de la connexion...
+      <div>
+        <div class="card-title">Pair Code</div>
+        <div class="card-subtitle mb-0">Saisissez ce code sur l'appareil à connecter</div>
       </div>
     </div>
 
-    <div id="pair-connecting" style="display:none;margin-top:16px;">
-      <div class="loader"></div>
-      <p style="color:var(--text-dim);font-size:13px;">Connexion en cours...</p>
+    <div id="pair-loader">
+      <div class="spinner"></div>
+      <p class="loading-text">Génération du code...</p>
     </div>
 
-    <div id="pair-error" class="error-msg" style="display:none;"></div>
+    <div id="pair-code-wrap" class="hidden">
+      <div class="pair-display">
+        <div class="pair-prefix">Votre Pair Code</div>
+        <div class="pair-value" id="pair-code-value">— — — —</div>
+        <div class="pair-hint">WhatsApp → Appareils liés → Lier avec numéro de téléphone</div>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        En attente de la connexion
+      </div>
+    </div>
 
-    <div class="info-box">
-      <span class="icon">⚠️</span>
+    <div id="pair-connecting" class="hidden" style="margin-top:16px;">
+      <div class="spinner"></div>
+      <p class="loading-text">Connexion en cours...</p>
+    </div>
+
+    <div id="pair-error" class="error-msg hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+      <span id="pair-error-text"></span>
+    </div>
+
+    <div class="info-banner mt-16">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
       <p>Ne partagez jamais ce code avec des personnes non autorisées.</p>
     </div>
   </div>
 
-  <!-- ÉTAPE 3 : Résultat -->
-  <div class="card" id="result-section" style="display:none;text-align:center;">
-    <div class="success-icon">✅</div>
-    <h2>Session Générée !</h2>
-    <p>Votre SESSION_ID est prêt. Copiez-le et collez-le dans votre fichier <strong>config.env</strong>.</p>
+  <!-- ════════ STEP 3A : Success ════════ -->
+  <div class="card hidden text-center" id="success-section">
+    <div class="success-visual">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="card-title" style="font-size:20px;">Session générée avec succès</div>
+    <div class="card-subtitle" style="margin-top:6px;">
+      Votre bot Chris MD est prêt à être déployé.
+    </div>
+
+    <div class="divider"></div>
+
+    <a href="https://xhrishost.site/dashboard/bot" target="_blank" class="btn-deploy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+      </svg>
+      Finaliser le déploiement
+    </a>
+
+    <div class="info-banner mt-16">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      <p>Le SESSION_ID a aussi été envoyé dans votre conversation WhatsApp.</p>
+    </div>
+  </div>
+
+  <!-- ════════ STEP 3B : Session ID ════════ -->
+  <div class="card hidden" id="session-section">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="card-title">Votre SESSION_ID</div>
+        <div class="card-subtitle mb-0">Copiez-le pour l'utiliser dans votre déploiement</div>
+      </div>
+    </div>
 
     <div class="session-box" id="session-string"></div>
 
-    <button class="btn-outline" onclick="copySession()">📋 Copier le SESSION_ID</button>
-    <button class="btn-ghost" onclick="resetAll()">↩️ Nouvelle session</button>
-
-    <div class="info-box">
-      <span class="icon">📩</span>
-      <p>Le SESSION_ID a aussi été envoyé dans votre conversation WhatsApp.</p>
+    <div class="gap-10 mt-12">
+      <button class="btn-outline" onclick="copySession()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copier le SESSION_ID
+      </button>
+      <button class="btn-outline" onclick="resetAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+        Nouvelle session
+      </button>
     </div>
   </div>
 
 </div>
 
-<div class="toast" id="toast">✅ Copié !</div>
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  Copié dans le presse-papiers
+</div>
 
-<footer>Chris MD Session Generator</footer>
+<footer>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+  Chris MD Session Generator
+</footer>
 
 <script>
   let currentSessionId = null
@@ -490,15 +773,15 @@
   async function startGeneration() {
     const btn = document.getElementById('start-btn')
     btn.disabled = true
-    btn.textContent = 'Démarrage...'
+    btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;"></div> Démarrage...'
 
     let phoneNumber = null
     if (selectedMethod === 'pair') {
       phoneNumber = document.getElementById('phone-input').value.replace(/[\s+\-]/g, '')
       if (!phoneNumber || phoneNumber.length < 10) {
-        alert('Entre un numéro valide avec indicatif pays (ex: 237XXXXXXXXX)')
+        alert('Entrez un numéro valide avec indicatif pays (ex: 237XXXXXXXXX)')
         btn.disabled = false
-        btn.textContent = 'Créer la session'
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Créer la session'
         return
       }
     }
@@ -513,18 +796,18 @@
       if (data.error) throw new Error(data.error)
 
       currentSessionId = data.sessionId
-      document.getElementById('start-section').style.display = 'none'
+      document.getElementById('start-section').classList.add('hidden')
 
       if (selectedMethod === 'qr') {
-        document.getElementById('qr-section').style.display = 'block'
+        document.getElementById('qr-section').classList.remove('hidden')
       } else {
-        document.getElementById('pair-section').style.display = 'block'
+        document.getElementById('pair-section').classList.remove('hidden')
       }
 
       startPolling()
     } catch (e) {
       btn.disabled = false
-      btn.textContent = 'Créer la session'
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Créer la session'
       alert('Erreur: ' + e.message)
     }
   }
@@ -535,24 +818,24 @@
         const res = await fetch('/api/status/' + currentSessionId)
         const data = await res.json()
 
-        // QR Code flow
+        // QR flow
         if (data.method === 'qr') {
           if (data.status === 'qr_ready' && data.qrCode) {
-            document.getElementById('qr-loader').style.display = 'none'
-            document.getElementById('qr-image-wrap').style.display = 'block'
+            document.getElementById('qr-loader').classList.add('hidden')
+            document.getElementById('qr-image-wrap').classList.remove('hidden')
             document.getElementById('qr-img').src = data.qrCode
           }
           if (data.status === 'connected') {
-            document.getElementById('qr-image-wrap').style.display = 'none'
-            document.getElementById('connecting-msg').style.display = 'block'
+            document.getElementById('qr-image-wrap').classList.add('hidden')
+            document.getElementById('connecting-msg').classList.remove('hidden')
           }
         }
 
-        // Pair Code flow
+        // Pair flow
         if (data.method === 'pair') {
           if (data.status === 'pair_ready' && data.pairCode) {
-            document.getElementById('pair-loader').style.display = 'none'
-            document.getElementById('pair-code-wrap').style.display = 'block'
+            document.getElementById('pair-loader').classList.add('hidden')
+            document.getElementById('pair-code-wrap').classList.remove('hidden')
             const code = data.pairCode
             const formatted = code.length === 8
               ? code.slice(0, 4) + ' - ' + code.slice(4)
@@ -560,36 +843,35 @@
             document.getElementById('pair-code-value').textContent = formatted
           }
           if (data.status === 'connected') {
-            document.getElementById('pair-code-wrap').style.display = 'none'
-            document.getElementById('pair-connecting').style.display = 'block'
+            document.getElementById('pair-code-wrap').classList.add('hidden')
+            document.getElementById('pair-connecting').classList.remove('hidden')
           }
         }
 
-        // Done
+        // Done → show success + session separately
         if (data.status === 'done' && data.sessionString) {
           clearInterval(pollInterval)
-          document.getElementById('qr-section').style.display = 'none'
-          document.getElementById('pair-section').style.display = 'none'
-          document.getElementById('result-section').style.display = 'block'
+          document.getElementById('qr-section').classList.add('hidden')
+          document.getElementById('pair-section').classList.add('hidden')
+          document.getElementById('success-section').classList.remove('hidden')
+          document.getElementById('session-section').classList.remove('hidden')
           document.getElementById('session-string').textContent = data.sessionString
         }
 
         // Error
         if (data.status === 'error') {
           clearInterval(pollInterval)
-          const errMsg = data.error || 'Erreur inconnue. Réessaie.'
+          const errMsg = data.error || 'Erreur inconnue. Réessayez.'
           if (data.method === 'qr') {
-            document.getElementById('qr-loader').style.display = 'none'
-            document.getElementById('qr-image-wrap').style.display = 'none'
-            const el = document.getElementById('qr-error')
-            el.style.display = 'block'
-            el.textContent = '❌ ' + errMsg
+            document.getElementById('qr-loader').classList.add('hidden')
+            document.getElementById('qr-image-wrap').classList.add('hidden')
+            document.getElementById('qr-error').classList.remove('hidden')
+            document.getElementById('qr-error-text').textContent = errMsg
           } else {
-            document.getElementById('pair-loader').style.display = 'none'
-            document.getElementById('pair-code-wrap').style.display = 'none'
-            const el = document.getElementById('pair-error')
-            el.style.display = 'block'
-            el.textContent = '❌ ' + errMsg
+            document.getElementById('pair-loader').classList.add('hidden')
+            document.getElementById('pair-code-wrap').classList.add('hidden')
+            document.getElementById('pair-error').classList.remove('hidden')
+            document.getElementById('pair-error-text').textContent = errMsg
           }
         }
       } catch {}
@@ -610,22 +892,25 @@
     currentSessionId = null
     selectedMethod = 'qr'
 
-    document.getElementById('result-section').style.display = 'none'
-    document.getElementById('qr-section').style.display = 'none'
-    document.getElementById('pair-section').style.display = 'none'
-    document.getElementById('start-section').style.display = 'block'
+    document.getElementById('success-section').classList.add('hidden')
+    document.getElementById('session-section').classList.add('hidden')
+    document.getElementById('qr-section').classList.add('hidden')
+    document.getElementById('pair-section').classList.add('hidden')
+    document.getElementById('start-section').classList.remove('hidden')
 
-    document.getElementById('start-btn').disabled = false
-    document.getElementById('start-btn').textContent = 'Créer la session'
-    document.getElementById('qr-loader').style.display = 'block'
-    document.getElementById('qr-image-wrap').style.display = 'none'
-    document.getElementById('connecting-msg').style.display = 'none'
-    document.getElementById('qr-error').style.display = 'none'
+    const btn = document.getElementById('start-btn')
+    btn.disabled = false
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Créer la session'
 
-    document.getElementById('pair-loader').style.display = 'block'
-    document.getElementById('pair-code-wrap').style.display = 'none'
-    document.getElementById('pair-connecting').style.display = 'none'
-    document.getElementById('pair-error').style.display = 'none'
+    document.getElementById('qr-loader').classList.remove('hidden')
+    document.getElementById('qr-image-wrap').classList.add('hidden')
+    document.getElementById('connecting-msg').classList.add('hidden')
+    document.getElementById('qr-error').classList.add('hidden')
+
+    document.getElementById('pair-loader').classList.remove('hidden')
+    document.getElementById('pair-code-wrap').classList.add('hidden')
+    document.getElementById('pair-connecting').classList.add('hidden')
+    document.getElementById('pair-error').classList.add('hidden')
 
     document.getElementById('phone-input').value = ''
     selectMethod('qr')
