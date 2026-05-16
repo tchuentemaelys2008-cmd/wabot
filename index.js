@@ -1,12 +1,18 @@
 /**
- * Chris MD Session Generator — VERSION CORRIGÉE
+ * Chris MD Session Generator — VERSION CORRIGÉE v2
  *
- * Changements critiques :
- *  - sock.logout() après génération réussie → libère le slot d'appareil côté WhatsApp
- *  - sock.logout() au cleanup → pas d'appareils fantômes
- *  - Pas de reconnexion auto sur 'close' avant 'done' → évite les multi-créations
- *  - Un seul scheduleClean propre
- *  - Auto-follow et envoi de messages sécurisés (try/catch isolés, pas de plantage en chaîne)
+ * Note importante sur la gestion des appareils :
+ *  - sock.logout() INVALIDE la session côté WhatsApp → on NE PEUT PAS l'utiliser
+ *    après génération, sinon la session envoyée à l'utilisateur est morte.
+ *  - sock.end()/sock.ws.close() ferme juste la connexion réseau, l'appareil reste
+ *    actif côté WhatsApp et la session reste valide pour le bot.
+ *  - L'utilisateur DOIT déconnecter manuellement les anciens appareils dans
+ *    WhatsApp → Paramètres → Appareils liés.
+ *
+ * Changements vs v1 :
+ *  - PAS de logout() après génération (préserve la session pour le bot)
+ *  - PAS de reconnexion automatique (évite la multiplication d'appareils)
+ *  - Cleanup propre : ferme la socket sans détruire les credentials
  */
 
 const express = require('express')
@@ -33,34 +39,24 @@ app.use(express.static('public'))
 
 const sessions = new Map()
 
-// ─── CLEANUP : logout WhatsApp + ferme socket + supprime dossier ─────────────
-async function cleanupSession(sessionId, options = {}) {
-  const { logout = true } = options
+// ─── CLEANUP : ferme la socket SANS logout (préserve la session) ─────────────
+function cleanupSession(sessionId) {
   const s = sessions.get(sessionId)
   if (s) {
-    // Logout WhatsApp : crucial pour libérer le slot d'appareil
-    if (logout && s.socket) {
-      try {
-        await s.socket.logout('cleanup')
-        console.log(`[${sessionId}] ✅ Logout WhatsApp réussi`)
-      } catch (e) {
-        // logout peut échouer si déjà déconnecté — pas grave
-        console.log(`[${sessionId}] Logout: ${e.message}`)
-      }
-    }
-    // Fermer la socket réseau
+    // IMPORTANT : on ne fait JAMAIS sock.logout() ici, sinon la session
+    // envoyée à l'utilisateur devient invalide côté WhatsApp.
+    // On ferme juste la connexion réseau.
     try { s.socket?.end?.(undefined) } catch {}
     try { s.socket?.ws?.close?.() } catch {}
     sessions.delete(sessionId)
   }
-  // Supprimer le dossier auth local
   const dir = path.join('/tmp', sessionId)
   try { if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true }) } catch {}
 }
 
 function scheduleClean(sessionId, delayMs = 15 * 60 * 1000) {
   setTimeout(() => {
-    cleanupSession(sessionId).catch(() => {})
+    try { cleanupSession(sessionId) } catch {}
   }, delayMs)
 }
 
@@ -99,11 +95,10 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
     status: method === 'pair' ? 'waiting_pair' : 'waiting_qr',
     method: method,
     error: null,
-    cleanupScheduled: false,
+    finalized: false,
   }
   sessions.set(sessionId, sessionData)
 
-  // ── Pair code ────────────────────────────────────────────────────────────
   if (method === 'pair' && phoneNumber) {
     setTimeout(async () => {
       try {
@@ -138,7 +133,8 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
       }
     }
 
-    if (connection === 'open') {
+    if (connection === 'open' && !sessionData.finalized) {
+      sessionData.finalized = true
       console.log(`[${sessionId}] Connecté`)
       sessionData.status = 'connected'
 
@@ -160,7 +156,7 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
         sessionData.status = 'done'
         console.log(`[${sessionId}] Session générée (${sessionString.length} chars)`)
 
-        // Auto-follow chaîne WhatsApp Chris MD (isolé)
+        // Auto-follow chaîne (isolé)
         try {
           const channelMeta = await sock.newsletterMetadata('invite', '0029Vark1I1AYlUR1G8YMX31')
           if (channelMeta && channelMeta.id) {
@@ -171,7 +167,7 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
           console.log(`[${sessionId}] Follow chaîne échoué (non bloquant): ${e.message}`)
         }
 
-        // Messages WhatsApp séparés (chaque envoi est isolé)
+        // Messages WhatsApp (chaque envoi isolé)
         const jid = sock.user.id
         try {
           await sock.sendMessage(jid, {
@@ -179,11 +175,11 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
               `✅ *Session Chris MD générée avec succès !*\n\n` +
               `Votre bot est prêt à être déployé.`
           })
-        } catch (e) { console.log(`[${sessionId}] Message 1 KO:`, e.message) }
+        } catch (e) { console.log(`[${sessionId}] Msg1 KO:`, e.message) }
 
         try {
           await sock.sendMessage(jid, { text: sessionString })
-        } catch (e) { console.log(`[${sessionId}] Message 2 KO:`, e.message) }
+        } catch (e) { console.log(`[${sessionId}] Msg2 KO:`, e.message) }
 
         try {
           await sock.sendMessage(jid, {
@@ -193,30 +189,18 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
               `Collez votre SESSION_ID et lancez votre bot en un clic.\n\n` +
               `⚠️ Ne partagez jamais votre session.`
           })
-        } catch (e) { console.log(`[${sessionId}] Message 3 KO:`, e.message) }
+        } catch (e) { console.log(`[${sessionId}] Msg3 KO:`, e.message) }
 
-        // ⚠️ CRUCIAL : laisse 2s pour que les messages soient effectivement envoyés
-        // côté serveur WhatsApp, PUIS on libère le slot d'appareil
-        await new Promise(r => setTimeout(r, 2000))
+        // Laisser 3s pour que les messages partent vraiment côté WA serveur
+        await new Promise(r => setTimeout(r, 3000))
 
-        // 🔑 LIBÉRER LE SLOT D'APPAREIL CÔTÉ WHATSAPP
-        // Sans ça, chaque génération laisse un appareil fantôme qui s'accumule.
-        // Au bout de 4+ appareils, WhatsApp throttle, et au-delà : risque de ban.
-        try {
-          await sock.logout('session-generated')
-          console.log(`[${sessionId}] 🔓 Appareil libéré côté WhatsApp`)
-        } catch (e) {
-          console.log(`[${sessionId}] Logout KO (non bloquant):`, e.message)
-        }
+        // Fermer proprement la socket SANS logout
+        // (logout invaliderait la session que l'utilisateur vient de recevoir)
+        try { sock.end(undefined) } catch {}
+        console.log(`[${sessionId}] Socket fermée, session préservée pour le bot`)
 
-        // Nettoyage différé du dossier auth local
-        // logout: false car on a déjà logout au-dessus
-        if (!sessionData.cleanupScheduled) {
-          sessionData.cleanupScheduled = true
-          setTimeout(() => {
-            cleanupSession(sessionId, { logout: false }).catch(() => {})
-          }, 15 * 60 * 1000)
-        }
+        // Nettoyage différé du dossier auth local après 15 min
+        scheduleClean(sessionId, 15 * 60 * 1000)
 
       } catch (e) {
         console.error(`[${sessionId}] Erreur:`, e.message)
@@ -229,38 +213,31 @@ async function startSession(sessionId, method = 'qr', phoneNumber = null) {
       const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode
       console.log(`[${sessionId}] Fermé, code:`, statusCode)
 
-      if (sessionData.status === 'done') {
-        // Tout est bon, on a déjà logout — pas besoin de reconnecter
-        return
-      }
+      // Si la session est déjà finalisée, c'est normal
+      if (sessionData.status === 'done') return
 
       if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
         sessionData.status = 'error'
         sessionData.error = 'Session expirée. Réessayez.'
-        // Cleanup léger (pas de logout, socket déjà fermée)
-        cleanupSession(sessionId, { logout: false }).catch(() => {})
         return
       }
 
-      // ⚠️ PAS DE RECONNEXION AUTOMATIQUE
-      // L'ancienne version rappelait startSession() ici, ce qui créait un
-      // NOUVEL appareil pour la MÊME tentative → multiplication d'appareils
-      // fantômes. Maintenant on marque en erreur et l'utilisateur réessaye
-      // manuellement depuis le frontend.
+      // PAS DE RECONNEXION AUTOMATIQUE
+      // L'ancienne version rappelait startSession() qui créait un nouvel appareil
+      // pour la même tentative — multipliait les appareils fantômes.
       if (sessionData.status !== 'done' && sessionData.status !== 'error') {
         sessionData.status = 'error'
         sessionData.error = 'Connexion perdue avant la fin. Veuillez réessayer.'
-        cleanupSession(sessionId, { logout: false }).catch(() => {})
       }
     }
   })
 
-  // Cleanup de sécurité après 8 min : si la session n'a pas fini, on libère tout
+  // Cleanup de sécurité après 8 min si pas fini
   setTimeout(() => {
     const s = sessions.get(sessionId)
     if (s && s.status !== 'done') {
       console.log(`[${sessionId}] Timeout 8min — nettoyage`)
-      cleanupSession(sessionId).catch(() => {})
+      cleanupSession(sessionId)
     }
   }, 8 * 60 * 1000)
 }
@@ -289,16 +266,6 @@ app.get('/api/status/:sessionId', (req, res) => {
     error: s.error,
     method: s.method,
   })
-})
-
-// Endpoint optionnel pour cleanup manuel (utile pour debug)
-app.delete('/api/session/:sessionId', async (req, res) => {
-  try {
-    await cleanupSession(req.params.sessionId)
-    res.json({ ok: true })
-  } catch (e) {
-    res.status(500).json({ error: e.message })
-  }
 })
 
 const PORT = process.env.PORT || 3000
